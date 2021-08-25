@@ -6,16 +6,17 @@
 
 # useful for handling different item types with a single interface
 from itemadapter import ItemAdapter
+import pymongo
 
 
 class KiasuparentPipeline:
     def __init__(self):
         connection = pymongo.MongoClient(
-            settings['MONGODB_SERVER'],
-            settings['MONGODB_PORT']
+            "localhost",
+            27017
         )
-        db = connection[settings['MONGODB_DB']]
-        self.collection = db[settings['POST_COLLECTION']]
+        db = connection["kiasuparent"]
+        self.collection = db["posts"]
 
     def process_item(self, item, spider):
         valid = True
