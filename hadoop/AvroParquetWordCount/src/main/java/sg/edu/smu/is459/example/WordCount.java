@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.StringTokenizer;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
@@ -12,21 +13,32 @@ import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.hadoop.util.Tool;
+import org.apache.hadoop.util.ToolRunner;
+import org.apache.parquet.avro.AvroParquetInputFormat;
+import org.apache.hadoop.io.LongWritable;
 
-public class WordCount {
+
+public class WordCount extends Configured implements Tool {
 
     public static class TokenizerMapper
-            extends Mapper<Object, Text, Text, IntWritable> {
+            extends Mapper<LongWritable, Post, Text, IntWritable> {
 
         private final static IntWritable one = new IntWritable(1);
-        private final Text word = new Text();
+        private Text word = new Text();
 
-        public void map(Object key, Text value, Context context
+        public void map(LongWritable key, Post value, Context context
         ) throws IOException, InterruptedException {
-            StringTokenizer itr = new StringTokenizer(value.toString());
-            while (itr.hasMoreTokens()) {
-                word.set(itr.nextToken());
-                context.write(word, one);
+            if (value != null) {
+                Object object = value.getAuthor();
+                if(object != null) {
+                    String content = value.getAuthor().toString();
+                    StringTokenizer itr = new StringTokenizer(content);
+                    while (itr.hasMoreTokens()) {
+                        word.set(itr.nextToken());
+                        context.write(word, one);
+                    }
+                }
             }
         }
     }
@@ -42,22 +54,44 @@ public class WordCount {
             for (IntWritable val : values) {
                 sum += val.get();
             }
-            result.set(sum);
-            context.write(key, result);
+            if(sum >= 100){
+                result.set(sum);
+                context.write(key, result);
+            }
         }
     }
 
     public static void main(String[] args) throws Exception {
-        Configuration conf = new Configuration();
-        Job job = Job.getInstance(conf, "word count");
+        int res = ToolRunner.run(new Configuration(), new WordCount(), args);
+        System.exit(res);
+    }
+
+    @Override
+    public int run(String[] args) throws Exception {
+        Job job = Job.getInstance(getConf());
         job.setJarByClass(WordCount.class);
+
+        // Set the mapper
         job.setMapperClass(TokenizerMapper.class);
+        job.setInputFormatClass(AvroParquetInputFormat.class);
+        AvroParquetInputFormat.setInputPaths(job, new Path(args[0]));
+        AvroParquetInputFormat.setAvroReadSchema(job, Post.getClassSchema());
+
+        // Intermediate output
+        job.setMapOutputKeyClass(Text.class);
+        job.setMapOutputValueClass(IntWritable.class);
+
+        // Set combiner and reducer
         job.setCombinerClass(IntSumReducer.class);
         job.setReducerClass(IntSumReducer.class);
+
+        // The output class is a pair of word and count
         job.setOutputKeyClass(Text.class);
         job.setOutputValueClass(IntWritable.class);
-        FileInputFormat.addInputPath(job, new Path(args[0]));
+
         FileOutputFormat.setOutputPath(job, new Path(args[1]));
-        System.exit(job.waitForCompletion(true) ? 0 : 1);
+
+        return job.waitForCompletion(true) ? 0 : 1;
     }
 }
+
