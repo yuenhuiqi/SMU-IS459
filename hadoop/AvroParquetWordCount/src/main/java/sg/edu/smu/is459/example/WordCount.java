@@ -30,9 +30,9 @@ public class WordCount extends Configured implements Tool {
         public void map(LongWritable key, Post value, Context context
         ) throws IOException, InterruptedException {
             if (value != null) {
-                Object object = value.getAuthor();
+                Object object = value.getTopic();
                 if(object != null) {
-                    String content = value.getAuthor().toString();
+                    String content = object.toString();
                     StringTokenizer itr = new StringTokenizer(content);
                     while (itr.hasMoreTokens()) {
                         word.set(itr.nextToken());
@@ -54,10 +54,8 @@ public class WordCount extends Configured implements Tool {
             for (IntWritable val : values) {
                 sum += val.get();
             }
-            if(sum >= 100){
-                result.set(sum);
-                context.write(key, result);
-            }
+            result.set(sum);
+            context.write(key, result);
         }
     }
 
