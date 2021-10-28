@@ -24,3 +24,10 @@ class Post(models.Model):
     topic = models.ForeignKey(Topic, on_delete = models.CASCADE)
 
     content = models.TextField()
+
+class PostCount(models.Model):
+    user_name = models.CharField(max_length=200)
+    post_count = models.IntegerField()
+
+    def __str__(self):
+        return self.user_name + " : " + str(self.post_count)

@@ -37,9 +37,11 @@
 
         $.ajax({
             type: 'POST',
+            // push the post info to another URL
             url: "{% url 'upload_post' %}",
             data: serializedData,
             success: function (response) {
+                // reset the form if it's success
                 $("#post_form").trigger('reset');
             },
             error: function (response) {

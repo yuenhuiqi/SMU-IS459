@@ -7,5 +7,6 @@ from dashboard.schema import schema
 urlpatterns = [
     path('dashboard/', include('dashboard.urls')),
     path('admin/', admin.site.urls),
-    path('graphql', GraphQLView.as_view(graphiql=True, schema=schema)),
+    path('graphql/', GraphQLView.as_view(graphiql=True, schema=schema)),
+    path('scrapy/', include('tasks.urls')),
 ]
